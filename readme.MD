@@ -30,3 +30,8 @@ aad-jwt-gen
 aad-jwt-gen -headless -clientId="your_client_id" -tenantId="your_tenant_id" -clientSecret="your_client_secret" -scope="your_scope"
 ```
 
+## Run from Docker
+```bash
+docker run -p 5555:5555 sanjaysingh/aad-jwt-gen
+```
+
