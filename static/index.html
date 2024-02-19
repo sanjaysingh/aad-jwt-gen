@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>JWT Token Generator</title>
+    <script src="https://cdn.jsdelivr.net/npm/vue@2"></script>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <style>
+        .token-container {
+            word-wrap: break-word;
+            white-space: pre-wrap;
+        }
+    </style>
+</head>
+
+<body>
+    <div id="app" class="container mx-auto p-4">
+        <nav class="bg-gray-800 p-4 text-white flex justify-between">
+            <span class="text-lg">JWT Token Generator</span>
+            <a href="https://github.com/sanjaysingh/aad-jwt-gen" class="hover:text-gray-300">Edit Me</a>
+        </nav>
+
+        <form @submit.prevent="handleSubmit" class="mt-8">
+            <div class="mb-4">
+                <label class="block">Client ID:</label>
+                <input v-model="clientId" type="text" class="mt-1 p-2 border rounded w-full" required />
+            </div>
+            <div class="mb-4">
+                <label class="block">Tenant ID:</label>
+                <input v-model="tenantId" type="text" class="mt-1 p-2 border rounded w-full" required />
+            </div>
+            <div class="mb-4">
+                <label class="block">Client Secret:</label>
+                <input v-model="clientSecret" type="password" class="mt-1 p-2 border rounded w-full" required />
+            </div>
+            <div class="mb-4">
+                <label class="block">Scope:</label>
+                <input v-model="scope" type="text" class="mt-1 p-2 border rounded w-full" placeholder=".default"
+                    value=".default" />
+            </div>
+            <button type="submit" class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">Generate
+                Token</button>
+        </form>
+
+        <div v-if="token" class="mt-6">
+            <h2 class="text-xl font-bold mb-2">JWT Token:</h2>
+            <p class="bg-gray-100 p-3 rounded token-container">{{ token }}</p>
+        </div>
+
+        <div v-if="decodedToken" class="mt-6">
+            <h2 class="text-xl font-bold mb-2">Decoded JWT:</h2>
+            <div class="bg-gray-100 p-3 rounded token-container">
+                <p><strong>Header:</strong> {{ decodedToken.header }}</p>
+                <p><strong>Payload:</strong> {{ decodedToken.payload }}</p>
+                <p><strong>Signature:</strong> {{ decodedToken.signature }}</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        new Vue({
+            el: '#app',
+            data: {
+                clientId: localStorage.getItem('clientId') || '',
+                tenantId: localStorage.getItem('tenantId') || '',
+                clientSecret: localStorage.getItem('clientSecret') || '',
+                scope: localStorage.getItem('scope') || '.default',
+                token: null,
+                decodedToken: null
+            },
+            methods: {
+                async handleSubmit() {
+                    try {
+                        const response = await fetch('/generate-token', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                            },
+                            body: JSON.stringify({
+                                clientId: this.clientId,
+                                tenantId: this.tenantId,
+                                clientSecret: this.clientSecret,
+                                scope: this.scope
+                            })
+                        });
+                        if (!response.ok) {
+                            throw new Error('Server responded with an error!');
+                        }
+                        const data = await response.json();
+                        this.token = data.token;
+
+                        // Save the form data to local storage
+                        localStorage.setItem('clientId', this.clientId);
+                        localStorage.setItem('tenantId', this.tenantId);
+                        localStorage.setItem('clientSecret', this.clientSecret);
+                        localStorage.setItem('scope', this.scope);
+                    } catch (error) {
+                        console.error('Error:', error);
+                    }
+                },
+                decodeToken(token) {
+                    const parts = token.split('.');
+                    if (parts.length === 3) {
+                        const header = JSON.stringify(JSON.parse(atob(parts[0])), null, 2);
+                        const payload = JSON.stringify(JSON.parse(atob(parts[1])), null, 2);
+                        return {
+                            header: header,
+                            payload: payload,
+                            signature: parts[2]
+                        };
+                    } else {
+                        return null;
+                    }
+                }
+            },
+            watch: {
+                token(newToken) {
+                    this.decodedToken = this.decodeToken(newToken);
+                }
+            }
+        });
+    </script>
+</body>
+
+</html>
