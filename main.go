@@ -1,14 +1,19 @@
 package main
 
 import (
+	"embed"
 	"flag"
 	"fmt"
+	"io/fs"
 	"log"
 	"net/http"
 
 	"github.com/sanjaysingh/aad-jwt-gen/cmd"
 	"github.com/sanjaysingh/aad-jwt-gen/handlers"
 )
+
+//go:embed static
+var staticFiles embed.FS
 
 func main() {
 	headless := flag.Bool("headless", false, "Run in headless mode for CLI token generation")
@@ -30,7 +35,9 @@ func main() {
 		cmd.RunHeadless(*clientId, *tenantId, *clientSecret, *scope)
 	} else {
 		// Serve the HTML file
-		http.Handle("/", http.FileServer(http.Dir("./static")))
+		var staticFS = fs.FS(staticFiles)
+		htmlfs, _ := fs.Sub(staticFS, "static")
+		http.Handle("/", http.FileServer(http.FS(htmlfs)))
 
 		// Handle JWT token generation
 		http.HandleFunc("/generate-token", handlers.TokenHandler)
